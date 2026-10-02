@@ -403,8 +403,8 @@ a.pn{text-decoration:none;color:inherit;flex:1}
 .zn.on{color:var(--tinta)}.zn.on span{background:var(--acc);border-color:var(--acc);color:var(--on)}
 .miss{display:none}body.rev .miss{display:inline;background:#FFF4DC;color:#7a4b00;border-radius:4px;padding:0 4px;font-size:.8em}
 .hd{position:relative}.hd .lng{position:absolute;top:-6px;right:0}
-.lng{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:30px;padding:0 11px;border-radius:99px;border:1px solid var(--linea);background:var(--tarjeta);color:var(--tinta);font:700 11px var(--txt);letter-spacing:1.2px;text-decoration:none}
-.lng.dark{background:rgba(20,31,58,.35);border-color:rgba(255,255,255,.35);color:#fff}.mr{display:flex;align-items:center;gap:12px}
+.lng{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:30px;padding:0 12px;border-radius:99px;border:1px solid #141F3A;background:#141F3A;color:#F2EDE4;font:700 11px var(--txt);letter-spacing:1.2px;text-decoration:none;box-shadow:0 2px 8px rgba(20,31,58,.18)}
+.lng.dark{background:rgba(20,31,58,.88);border-color:rgba(255,255,255,.7);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.25)}.mr{display:flex;align-items:center;gap:12px}
 .revbtn{display:none}body.rev .revbtn{display:flex;position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,calc(50% - 203px));z-index:25;align-items:center;gap:6px;background:#FFF4DC;color:#7a4b00;border:1px dashed #E3B45C;border-radius:99px;padding:7px 12px;font:600 12px var(--txt);text-decoration:none}
 """
 JS4 = r"""
