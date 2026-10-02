@@ -95,7 +95,9 @@ def punto(icon, text): return f'<li class="pt">{chip(icon)}<span>{text}</span></
 def rev(x): return f'<p class="rev"><b>Pendiente:</b> {x}</p>'
 def tel_href(n):
     d = "".join(c for c in n if c.isdigit())
-    return "tel:+" + (d if len(d) == 11 else "1" + d) if d else ""
+    if not d: return ""
+    if len(d) <= 6: return "tel:" + d          # números cortos: 911
+    return "tel:+" + (d if len(d) == 11 else "1" + d)
 def wa_href(): return f'https://wa.me/{"".join(c for c in graw("whatsapp") if c.isdigit())}?text={urllib.request.quote(graw("whatsapp_mensaje"))}'
 PILL = [("telefono", "tel", "Llamar"), ("maps", "nav", "Cómo llegar"), ("instagram", "ig", "Instagram"), ("web", "web", "Web"), ("tripadvisor", "trip", "TripAdvisor"), ("wikiloc", "ruta", "Rutas en Wikiloc")]
 def pills(p):
@@ -150,7 +152,7 @@ def s_inicio():
  <div class="msg"><div class="firma"><h3>{g("anfitriones")}</h3><span class="badge">Tus anfitriones</span></div><p>{t("bienvenida")} <span class="more">Leer más</span></p></div></article>
 <div class="sec" id="wifi">{stitle("Conéctate", t("wifi_estado"))}{wifi_cards()}</div>
 <div class="sec">{stitle("A mano")}
- <article class="card info tap" data-sheet="contacto" {fs("bienvenida")}>{chip("tel", "l")}<div><span class="lb">Contacto</span><b>{g("anfitriones").split(" y ")[0]} · {g("telefono")}</b><p>{g("email")} · Propietario VMS</p></div>{CHEV}</article>
+ <article class="card info tap" data-sheet="contacto" {fs("bienvenida")}>{chip("tel", "l")}<div><span class="lb">Contacto</span><b>{g("telefono")}</b><p>Personal de apoyo</p></div>{CHEV}</article>
  <article class="card info tap" data-sheet="llegar" {fs("bienvenida")}>{chip("pin", "l")}<div><span class="lb">Ubicación</span><b>{g("direccion")}</b><p>{g("zona")}</p>
   <div class="btns sm"><a class="btn solid" href="{e(graw("maps"))}" target="_blank" rel="noopener">{ic("nav")}Abrir en Google Maps</a></div></div>{CHEV}</article>
  <article class="card info tint tap" data-sheet="emergencias" {fs("emergencias")}>{chip("siren", "l")}<div><span class="lb">Emergencias</span>
@@ -252,9 +254,9 @@ def sheets():
         + blk("Comparte tu estancia", f"<p>{t('comparte_instagram')}</p><div class='btns'>{btn('https://www.instagram.com/' + rc + '/', 'ig', '@' + e(rc))}</div><p>{t('comparte_review')}</p>")
         + blk(t("club_titulo"), f"<div class='dots'><i class='ok'></i><i class='ok'></i><i class='ok'></i><i class='ok'></i><i></i></div><p>{t('club_texto')}</p><div class='btns'>"
               + btn("mailto:" + graw("email") + "?subject=Reserva%20Villa%20Mi%20Sue%C3%B1o", "mail", "Escríbenos: " + g("email"), True, False) + "</div>"))
-    S["contacto"] = ("bienvenida", "Contacto", g("propietario"),
-        "<p>Propietario de Villa Mi Sueño. Escríbenos o llámanos para lo que necesites.</p><div class='btns col'>"
-        + btn(tel_href(graw("telefono_llamar")), "tel", "Llamar · " + g("telefono"), True, False) + btn(wa_href(), "wa", "WhatsApp") + btn("mailto:" + graw("email"), "mail", g("email"), ext=False) + "</div>")
+    S["contacto"] = ("bienvenida", "Contacto", "Personal de apoyo",
+        "<p>Llámanos o escríbenos por WhatsApp para lo que necesites durante tu estancia.</p><div class='btns col'>"
+        + btn(tel_href(graw("telefono_llamar")), "tel", "Llamar · " + g("telefono"), True, False) + btn(wa_href(), "wa", "WhatsApp") + "</div>")
     S["llegar"] = ("llegada", "Cómo llegar", "Ruta a Villa Mi Sueño",
         f"<p><b>{g('direccion')}, {g('zona')}, R.D.</b></p><div class='btns'>{btn(graw('maps'), 'nav', 'Abrir en Google Maps', True)}</div>"
         + blk("Si no carga el GPS", "<p>No importa: sigue las instrucciones al pie de la letra.</p><ol class='ruta'>" + "".join(f"<li>{e(r['paso'])}</li>" for r in D["Ruta"]) + "</ol>"))
