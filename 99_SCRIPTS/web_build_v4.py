@@ -260,8 +260,13 @@ def sheets():
     S["llegar"] = ("llegada", "Cómo llegar", "Ruta a Villa Mi Sueño",
         f"<p><b>{g('direccion')}, {g('zona')}, R.D.</b></p><div class='btns'>{btn(graw('maps'), 'nav', 'Abrir en Google Maps', True)}</div>"
         + blk("Si no carga el GPS", "<p>No importa: sigue las instrucciones al pie de la letra.</p><ol class='ruta'>" + "".join(f"<li>{e(r['paso'])}</li>" for r in D["Ruta"]) + "</ol>"))
-    em = "".join(f'<div class="pl"><div class="pn"><b>{e(r["nombre"])}</b>{"" if (r.get("telefono") or r.get("maps")) else "<small class=falta>Teléfono y mapa pendientes</small>"}</div>'
-                 f'{v2.acts(r["nombre"], tel=r.get("telefono", ""), maps=r.get("maps", ""))}</div>' for r in D["Emergencias"])
+    def em_row(r):
+        tels = [x.strip() for x in r.get("telefono", "").split("/") if x.strip()]
+        b = "".join(f'<a class="pill" href="{tel_href(x)}">{ic("tel")}Llamar · {e(x)}</a>' for x in tels)
+        if r.get("maps"): b += f'<a class="pill" href="{e(r["maps"])}" target="_blank" rel="noopener">{ic("nav")}Abrir en Google Maps</a>'
+        falta = "" if b else "<small class=falta>Teléfono y mapa pendientes</small>"
+        return f'<div class="em"><b>{e(r["nombre"])}</b>{falta}{f"<div class=pills>{b}</div>" if b else ""}</div>'
+    em = "".join(em_row(r) for r in D["Emergencias"])
     S["emergencias"] = ("emergencias", "En caso de", "Emergencias", (f"<div class='btns'>{btn(tel_href(graw('emergencias_telefono')), 'tel', 'Llamar a emergencias · ' + g('emergencias_telefono'), True, False)}</div>" if graw("emergencias_telefono") else "") + blk("En la casa", lst([t("extintores"), t("botiquin")])) + blk("Servicios", f'<div class="card list">{em}</div>'))
     S["llegada"] = ("llegada", "Check-in / out", "Llegada y salida",
         blk(f"Check-in · {g('checkin')}", lst([e(r["texto"]) for r in D["Pasos"] if r["tipo"] == "checkin"] + [t("checkin_flexible")]))
@@ -354,6 +359,7 @@ a.lugar{text-decoration:none;color:inherit}a.lugar::after{content:"›";margin-l
 .cnt{position:absolute;right:10px;bottom:10px;background:rgba(20,31,58,.65);color:#fff;font:600 11px var(--txt);padding:4px 9px;border-radius:99px}
 .sl.ph::before{top:50%}
 .credf{font-size:10.5px!important;color:var(--t2);margin:-8px 0 12px!important}.credd{display:block;font-size:9.5px;opacity:.7;margin-top:8px}
+.em{padding:12px 0;border-bottom:1px solid var(--linea)}.em:last-child{border:0}.em>b{display:block;font-weight:600;font-size:14.5px}.em .pills{margin:8px 0 0}
 .nv{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,253,248,.88);color:var(--tinta);display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 8px rgba(20,31,58,.18)}
 .nv .i{width:17px;height:17px}.nv.prev{left:10px}.nv.prev .i{transform:rotate(180deg)}.nv.next{right:10px}.nv:active{transform:translateY(-50%) scale(.92)}
 .btn.urg{background:#9E1B14;color:#fff;border-color:#9E1B14}
