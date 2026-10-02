@@ -70,7 +70,8 @@ def urls(field, who):
         else: PEND.append(f"<b>Foto no encontrada</b> «{e(p)}» ({e(who)})")
     return out
 def car(us, label, h=""):
-    sl = "".join(f'<div class="sl" style="background-image:url({u})"></div>' for u in us) or f'<div class="sl ph" data-ph="Foto pendiente · {e(label)}"></div>'
+    if not us: return ""   # sin fotos: la ficha se muestra solo con texto (sin placeholder)
+    sl = "".join(f'<div class="sl" style="background-image:url({u})"></div>' for u in us)
     cnt = f'<span class="cnt">1 / {len(us)}</span>' if len(us) > 1 else ""
     return f'<div class="car"{f" style={chr(34)}--h:{h}{chr(34)}" if h else ""}><div class="slides">{sl}</div>{cnt}</div>'
 def credf(s):
@@ -284,7 +285,7 @@ def sheets():
         S["reglas-" + hoja] = (fam, eb, tit, (f"<p>{intro}</p>" if intro else "") + "".join(blk(e(k), lst(v)) for k, v in gg.items()))
     # galería (contenido dinámico por JS)
     zn = "".join(f'<button class="zn" data-z="{i}"><span>{a["i"]}</span>{e(a["l"])}</button>' for i, a in enumerate(AMEN))
-    S["galeria"] = ("casa", "Tenemos para ti", "", f'<div class="gal">{car([], "zona")}<p class="gdesc"></p></div><div class="zonas-w"><p class="lb zt">Otras zonas</p><div class="zonas">{zn}</div></div>')
+    S["galeria"] = ("casa", "Tenemos para ti", "", f'<div class="gal"><div class="car"><div class="slides"></div></div><p class="gdesc"></p></div><div class="zonas-w"><p class="lb zt">Otras zonas</p><div class="zonas">{zn}</div></div>')
     # secciones de Explora
     for sec, (eb, tit) in SEC_T.items():
         S["sec-" + sec] = ("jarabacoa", eb, tit, '<div class="card list">' + "".join(row_link(i, p, sec == "aventura") for i, p in lugares(sec)) + "</div>")
@@ -403,7 +404,7 @@ document.querySelectorAll('.car').forEach(arm);
 if(!RM)setInterval(()=>{if(document.hidden)return;document.querySelectorAll('.car').forEach(c=>{if(!c.offsetParent||c.querySelector('.slides').children.length<2)return;if(Date.now()-(+c.dataset.t||0)<9000)return;step(c,1);});},4500);
 document.querySelectorAll('.car').forEach(c=>c.querySelector('.slides').addEventListener('scroll',()=>counter(c),{passive:true}));
 function gal(i){i=+i||0;const s=document.getElementById('sh-galeria'),z=AM[i];if(!z)return;s.querySelector('.sh-h h2').textContent=z.l;
- const sl=s.querySelector('.slides');sl.innerHTML=z.f.length?z.f.map(u=>'<div class="sl" style="background-image:url('+u+')"></div>').join(''):'<div class="sl ph" data-ph="Foto pendiente · '+z.l.replace(/"/g,'')+'"></div>';sl.scrollLeft=0;
+ const sl=s.querySelector('.slides');sl.innerHTML=z.f.map(u=>'<div class="sl" style="background-image:url('+u+')"></div>').join('');sl.scrollLeft=0;s.querySelector('.car').hidden=!z.f.length;
  let c=s.querySelector('.cnt');if(!c){c=document.createElement('span');c.className='cnt';s.querySelector('.car').appendChild(c);}c.hidden=z.f.length<2;c.textContent='1 / '+z.f.length;
  s.querySelector('.gdesc').textContent=z.d;arm(s.querySelector('.car'));s.querySelector('.car').dataset.t=Date.now();
  s.querySelectorAll('.zn').forEach((b,j)=>{b.classList.toggle('on',j===i);if(j===i){const w=b.parentElement;w.scrollLeft=b.offsetLeft-w.clientWidth/2+b.clientWidth/2;}});}
