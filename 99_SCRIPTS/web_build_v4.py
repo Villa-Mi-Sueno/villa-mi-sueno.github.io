@@ -145,7 +145,7 @@ def wifi_cards():
                 f'<div class="qr" data-qr="{e(payload)}" role="img" aria-label="Código QR de la red {e(w["red"])}"></div></div></article>')
     return out
 def s_inicio():
-    emer_btn = f'<div class="btns sm"><a class="btn urg" href="{tel_href(graw("emergencias_telefono"))}">{ic("tel")}Llamar a emergencias</a></div>' if graw("emergencias_telefono") else ""
+    emer_btn = f'<div class="btns sm"><a class="btn urg" href="{tel_href(graw("emergencias_telefono"))}">{ic("tel")}Llamar</a></div>' if graw("emergencias_telefono") else ""
     return f'''<section data-view="inicio" class="view">
 {header("bienvenida", t("inicio_seccion"), t("inicio_titulo"), t("inicio_intro"))}
 {stitle(t("guia_titulo"), "Desliza →")}{guia()}
@@ -153,11 +153,12 @@ def s_inicio():
  <div class="msg"><div class="firma"><h3>{g("anfitriones")}</h3><span class="badge">Tus anfitriones</span></div><p>{t("bienvenida")} <span class="more">Leer más</span></p></div></article>
 <div class="sec" id="wifi">{stitle("Conéctate", t("wifi_estado"))}{wifi_cards()}</div>
 <div class="sec">{stitle("A mano")}
- <article class="card info tap" data-sheet="contacto" {fs("bienvenida")}>{chip("tel", "l")}<div><span class="lb">Contacto</span><b>{g("telefono")}</b><p>Personal de apoyo</p></div>{CHEV}</article>
+ <article class="card info tap" data-sheet="contacto" {fs("bienvenida")}>{chip("tel", "l")}<div><span class="lb">Contacto</span><b>Personal de apoyo</b>
+  <div class="btns sm"><a class="btn solid" href="{tel_href(graw("telefono_llamar"))}">{ic("tel")}Llamar</a><a class="btn" href="{e(wa_href())}" target="_blank" rel="noopener">{ic("wa")}WhatsApp</a></div></div>{CHEV}</article>
  <article class="card info tap" data-sheet="llegar" {fs("bienvenida")}>{chip("pin", "l")}<div><span class="lb">Ubicación</span><b>{g("direccion")}</b><p>{g("zona")}</p>
   <div class="btns sm"><a class="btn solid" href="{e(graw("maps"))}" target="_blank" rel="noopener">{ic("nav")}Abrir en Google Maps</a></div></div>{CHEV}</article>
  <article class="card info tint tap" data-sheet="emergencias" {fs("emergencias")}>{chip("siren", "l")}<div><span class="lb">Emergencias</span>
-  <b class="{"" if graw("emergencias_telefono") else "falta"}">{e(graw("emergencias_telefono")) or "Teléfono pendiente"}</b><p>{t("emergencias_detalle")}</p>{emer_btn}</div>{CHEV}</article></div>
+  <b>{"En caso de emergencia" if graw("emergencias_telefono") else "Teléfono pendiente"}</b><p>{t("emergencias_detalle")}</p>{emer_btn}</div>{CHEV}</article></div>
 <article class="card seg tint tap" data-sheet="emergencias" {fs("emergencias")}><div class="cab2">{ic("shield")}<h4>{t("seguridad_titulo")}</h4>{CHEV}</div>
  <ul class="pts">{punto("shield", t("botiquin"))}{punto("flame", t("extintores"))}</ul></article>
 </section>'''
@@ -257,18 +258,18 @@ def sheets():
               + btn("mailto:" + graw("email") + "?subject=Reserva%20Villa%20Mi%20Sue%C3%B1o", "mail", "Escríbenos: " + g("email"), True, False) + "</div>"))
     S["contacto"] = ("bienvenida", "Contacto", "Personal de apoyo",
         "<p>Llámanos o escríbenos por WhatsApp para lo que necesites durante tu estancia.</p><div class='btns col'>"
-        + btn(tel_href(graw("telefono_llamar")), "tel", "Llamar · " + g("telefono"), True, False) + btn(wa_href(), "wa", "WhatsApp") + "</div>")
+        + btn(tel_href(graw("telefono_llamar")), "tel", "Llamar", True, False) + btn(wa_href(), "wa", "WhatsApp") + "</div>")
     S["llegar"] = ("llegada", "Cómo llegar", "Ruta a Villa Mi Sueño",
         f"<p><b>{g('direccion')}, {g('zona')}, R.D.</b></p><div class='btns'>{btn(graw('maps'), 'nav', 'Abrir en Google Maps', True)}</div>"
         + blk("Si no carga el GPS", "<p>No importa: sigue las instrucciones al pie de la letra.</p><ol class='ruta'>" + "".join(f"<li>{e(r['paso'])}</li>" for r in D["Ruta"]) + "</ol>"))
     def em_row(r):
         tels = [x.strip() for x in r.get("telefono", "").split("/") if x.strip()]
-        b = "".join(f'<a class="pill" href="{tel_href(x)}">{ic("tel")}Llamar · {e(x)}</a>' for x in tels)
+        b = "".join(f'<a class="pill" href="{tel_href(x)}">{ic("tel")}Llamar{"" if len(tels) == 1 else " " + str(k + 1)}</a>' for k, x in enumerate(tels))
         if r.get("maps"): b += f'<a class="pill" href="{e(r["maps"])}" target="_blank" rel="noopener">{ic("nav")}Abrir en Google Maps</a>'
         falta = "" if b else "<small class=falta>Teléfono y mapa pendientes</small>"
         return f'<div class="em"><b>{e(r["nombre"])}</b>{falta}{f"<div class=pills>{b}</div>" if b else ""}</div>'
     em = "".join(em_row(r) for r in D["Emergencias"])
-    S["emergencias"] = ("emergencias", "En caso de", "Emergencias", (f"<div class='btns'>{btn(tel_href(graw('emergencias_telefono')), 'tel', 'Llamar a emergencias · ' + g('emergencias_telefono'), True, False)}</div>" if graw("emergencias_telefono") else "") + blk("En la casa", lst([t("extintores"), t("botiquin")])) + blk("Servicios", f'<div class="card list">{em}</div>'))
+    S["emergencias"] = ("emergencias", "En caso de", "Emergencias", (f"<div class='btns'>{btn(tel_href(graw('emergencias_telefono')), 'tel', 'Llamar a emergencias', True, False)}</div>" if graw("emergencias_telefono") else "") + blk("En la casa", lst([t("extintores"), t("botiquin")])) + blk("Servicios", f'<div class="card list">{em}</div>'))
     S["llegada"] = ("llegada", "Check-in / out", "Llegada y salida",
         blk(f"Check-in · {g('checkin')}", lst([e(r["texto"]) for r in D["Pasos"] if r["tipo"] == "checkin"] + [t("checkin_flexible")]))
         + blk(f"Check-out · {g('checkout')}", lst([e(r["texto"]) for r in D["Pasos"] if r["tipo"] == "checkout"] + [t("checkout_flexible")]))
