@@ -139,10 +139,10 @@ def wifi_cards():
     for w in D["WiFi"]:
         s = lambda x: re.sub(r'([\\;,:"])', r"\\\1", x)
         payload = f'WIFI:T:{w.get("seguridad") or "WPA"};S:{s(w["red"])};P:{s(w["contraseña"])};;'
-        out += (f'<article class="card wifi" {fs("wifi")}><div class="cab">{chip("wifi", "l")}<span class="estado">{e(w.get("etiqueta", ""))}</span></div>'
-                f'<div class="row2"><div class="creds"><button class="cp" data-copy="{e(w["red"])}"><span class="lb">Red</span><b>{e(w["red"])}</b></button>'
-                f'<button class="cp" data-copy="{e(w["contraseña"])}"><span class="lb">Contraseña</span><b>{e(w["contraseña"])}</b></button></div>'
-                f'<div class="qr" data-qr="{e(payload)}" role="img" aria-label="Código QR de la red {e(w["red"])}"></div></div></article>')
+        out += (f'<article class="card wifi" {fs("wifi")}><div class="wl"><div class="cab">{chip("wifi", "l")}<span class="estado">{e(w.get("etiqueta", ""))}</span></div>'
+                f'<div class="creds"><button class="cp" data-copy="{e(w["red"])}"><span class="lb">Red</span><b>{e(w["red"])}</b></button>'
+                f'<button class="cp" data-copy="{e(w["contraseña"])}"><span class="lb">Contraseña</span><b>{e(w["contraseña"])}</b></button></div></div>'
+                f'<div class="qr" data-qr="{e(payload)}" role="img" aria-label="Código QR de la red {e(w["red"])}"></div></article>')
     return out
 def s_inicio():
     emer_btn = f'<div class="btns sm"><a class="btn urg" href="{tel_href(graw("emergencias_telefono"))}">{ic("tel")}Llamar</a></div>' if graw("emergencias_telefono") else ""
@@ -342,7 +342,7 @@ CSS4 = r"""
 .gi{flex:none;width:66px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:7px;text-decoration:none;text-align:center;font:600 10.5px/1.2 var(--txt);color:var(--tinta)}
 .gi .ico{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;background:var(--chip);color:var(--ink);transition:transform .12s}.gi:active .ico{transform:scale(.94)}.gi .i{width:21px;height:21px}
 .st .det{text-align:right}
-.wifi .row2{display:flex;gap:16px;align-items:center;margin-top:16px}.creds{flex:1;display:grid;gap:14px;min-width:0}
+.wifi{display:flex;align-items:center;gap:16px}.wl{flex:1;min-width:0}.wl .creds{margin-top:16px;display:grid;gap:14px}
 .qr{width:104px;height:104px;flex:none;background:#fff;border-radius:14px;padding:9px}.qr svg{width:100%;height:100%;display:block}
 .btns.sm{margin:10px 0 0}.btns.sm .btn{padding:8px 12px;font-size:12px}
 .traer .tema{align-items:flex-start;margin-bottom:14px}.traer .tema h3{font:700 19px var(--disp);margin:2px 0 4px}.sub{color:var(--t2);font-size:12.5px;margin:0}
