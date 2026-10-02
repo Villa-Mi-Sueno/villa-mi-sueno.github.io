@@ -1,0 +1,61 @@
+name: Publicar welcome book
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}vms/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install openpyxl
+      - name: Descargar contenido desde Google Drive
+        env:
+          DRIVE_ID: ${{ vars.DRIVE_FILE_ID }}
+        run: |
+          X=08_WELCOME_WEB/_datos/VMS_contenido.xlsx
+          if [ -n "$DRIVE_ID" ]; then
+            curl -sSL -o /tmp/c.xlsx "https://drive.google.com/uc?export=download&id=$DRIVE_ID" || true
+            if python -c "import openpyxl; openpyxl.load_workbook('/tmp/c.xlsx')" 2>/dev/null; then cp /tmp/c.xlsx "$X"; echo "Contenido descargado de Drive";
+            else echo "::warning::No se pudo leer el Excel de Drive (¿compartido como 'cualquiera con el enlace'?). Uso la copia del repositorio."; fi
+          fi
+          echo "HUELLA=$(sha256sum "$X" | cut -c1-16)-$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+      - name: ¿Hay cambios desde la última publicación?
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .publicado
+          key: pub-${{ env.HUELLA }}
+          lookup-only: true
+      - name: Generar web
+        if: steps.cache.outputs.cache-hit != 'true' || github.event_name != 'schedule'
+        run: python 99_SCRIPTS/web_build_v4.py
+      - if: steps.cache.outputs.cache-hit != 'true' || github.event_name != 'schedule'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 08_WELCOME_WEB/sitio_v4
+      - id: deploy
+        if: steps.cache.outputs.cache-hit != 'true' || github.event_name != 'schedule'
+        uses: actions/deploy-pages@v4
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: mkdir -p .publicado && echo "$HUELLA" > .publicado/huella
+      - if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .publicado
+          key: pub-${{ env.HUELLA }}
