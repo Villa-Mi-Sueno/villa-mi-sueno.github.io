@@ -33,7 +33,8 @@ fs = v2.fs
 def yes(v): return str(v).strip().lower() in ("sí", "si", "yes", "x", "1", "true", "s")
 
 # ---------------- carga del Excel ----------------
-D = {}; G = {}; T = {}; PEND = []; ASSETS_COPIED = set()
+D = {}; G = {}; T = {}; PEND = []; ASSETS_COPIED = set(); RAW = {}; LANG = "es"
+LANGS = ("es", "en")
 def num(v):
     if isinstance(v, float) and v.is_integer(): v = int(v)
     return "" if v is None else str(v).strip()
@@ -46,13 +47,29 @@ def load():
         for r in ws.iter_rows(min_row=2, values_only=True):
             vals = [num(x) for x in r][:len(hdr)]
             if any(vals): rows.append(dict(zip(hdr, vals + [""] * (len(hdr) - len(vals)))))
-        D[n] = rows
+        RAW[n] = rows
+def apply(lang):
+    """Prepara D/G/T para un idioma: las columnas *_en (si no están vacías) sustituyen a la columna base."""
+    global LANG; LANG = lang
+    D.clear(); G.clear(); T.clear(); PEND.clear(); AMEN.clear()
+    for n, rows in RAW.items():
+        D[n] = []
         for i, row in enumerate(rows):
-            for k, v in row.items():
-                if "PENDIENTE" in v.upper() or "BORRADOR" in v.upper():
-                    ref = row.get("clave") or row.get("nombre") or row.get("red") or row.get("categoria") or row.get("etiqueta") or f"fila {i + 2}"
-                    PEND.append(f"<b>{e(n)} · {e(ref)}</b>: {e(v)}")
+            r = dict(row)
+            if lang != "es":
+                for k in list(r):
+                    if k.endswith("_" + lang) and r[k]: r[k[:-len(lang) - 1]] = r[k]
+            D[n].append(r)
+            if lang == "es":
+                for k, v in r.items():
+                    if "PENDIENTE" in v.upper() or "BORRADOR" in v.upper():
+                        ref = r.get("clave") or r.get("nombre") or r.get("red") or r.get("categoria") or r.get("etiqueta") or f"fila {i + 2}"
+                        PEND.append(f"<b>{e(n)} · {e(ref)}</b>: {e(v)}")
     G.update({r["clave"]: r["valor"] for r in D["General"]}); T.update({r["clave"]: r["texto"] for r in D["Textos"]})
+def lng_link(dark=False):
+    es = LANG == "es"
+    return (f'<a class="lng{" dark" if dark else ""}" href="{"en/" if es else "../"}" data-l="{"en" if es else "es"}" hreflang="{"en" if es else "es"}" '
+            f'aria-label="{"English" if es else "Español"}">{"EN" if es else "ES"}</a>')
 def miss(k): PEND.append(f"<b>Falta</b> el dato «{e(k)}»"); return f'<span class="miss">[{e(k)}]</span>'
 def g(k): return e(G[k]) if G.get(k) else miss(k)
 def t(k): return e(T[k]) if T.get(k) else miss(k)
@@ -87,7 +104,7 @@ def foto(slot, cls, inner, desc, extra=""):
 # ---------------- piezas ----------------
 CHEV = '<span class="cv">' + ic("chev") + "</span>"
 def eyebrow(x): return f'<div class="eb"><i></i><span>{x}</span></div>'
-def header(fam, sec, title, intro): return f'<header class="hd" {fs(fam)}>{eyebrow(sec)}<h1>{title}</h1><p>{intro}</p></header>'
+def header(fam, sec, title, intro): return f'<header class="hd" {fs(fam)}>{eyebrow(sec)}{lng_link()}<h1>{title}</h1><p>{intro}</p></header>'
 def stitle(x, det="", sheet="", fam=None, id_=""):
     d = (f'<a class="det" href="#" data-sheet="{sheet}">{det}</a>' if sheet else f'<span class="det">{det}</span>') if det else ""
     return f'<div class="st"{f" id={chr(34)}{id_}{chr(34)}" if id_ else ""}{" " + fs(fam) if fam else ""}><h2>{x}</h2>{d}</div>'
@@ -114,7 +131,7 @@ def slug(s): return re.sub(r"[^a-z0-9]+", "-", s.lower().translate(str.maketrans
 
 # ---------------- PORTADA ----------------
 def s_portada():
-    inner = (f'<div class="marca"><span class="sello"><i class="mark"></i></span><span class="tipo">Welcome book</span></div>'
+    inner = (f'<div class="marca"><span class="sello"><i class="mark"></i></span><div class="mr"><span class="tipo">Welcome book</span>{lng_link(True)}</div></div>'
              f'<div class="pres"><p class="ubi">{ic("pin")}{g("ubicacion")}</p>'
              f'<div class="tit"><h1>{g("nombre")}</h1><p class="prom">{g("promesa")}</p></div>'
              f'<div class="datos"><div><b>{g("camas")}</b><span>camas</span></div><div><b>{g("banos")}</b><span>baños</span></div><div><b>{g("huespedes")}</b><span>huéspedes</span></div></div>'
@@ -385,9 +402,15 @@ a.pn{text-decoration:none;color:inherit;flex:1}
 .zn span{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;background:var(--tarjeta);border:1px solid var(--linea);color:var(--ink)}.zn .i{width:20px;height:20px}
 .zn.on{color:var(--tinta)}.zn.on span{background:var(--acc);border-color:var(--acc);color:var(--on)}
 .miss{display:none}body.rev .miss{display:inline;background:#FFF4DC;color:#7a4b00;border-radius:4px;padding:0 4px;font-size:.8em}
+.hd{position:relative}.hd .lng{position:absolute;top:-6px;right:0}
+.lng{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:30px;padding:0 11px;border-radius:99px;border:1px solid var(--linea);background:var(--tarjeta);color:var(--tinta);font:700 11px var(--txt);letter-spacing:1.2px;text-decoration:none}
+.lng.dark{background:rgba(20,31,58,.35);border-color:rgba(255,255,255,.35);color:#fff}.mr{display:flex;align-items:center;gap:12px}
 .revbtn{display:none}body.rev .revbtn{display:flex;position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,calc(50% - 203px));z-index:25;align-items:center;gap:6px;background:#FFF4DC;color:#7a4b00;border:1px dashed #E3B45C;border-radius:99px;padding:7px 12px;font:600 12px var(--txt);text-decoration:none}
 """
 JS4 = r"""
+try{const LK='vmsLang';if(UI.lang==='es'&&!localStorage.getItem(LK)&&!/^es\b/i.test(navigator.language||'es'))location.replace('en/'+location.search+location.hash);
+ document.addEventListener('click',ev=>{const a=ev.target.closest('.lng');if(!a)return;ev.preventDefault();ev.stopPropagation();try{localStorage.setItem(LK,a.dataset.l);}catch(_){}
+  location.href=a.getAttribute('href')+location.search+location.hash;},true);}catch(e){}
 const views=[...document.querySelectorAll('[data-view]')];let openS=null,pushed=0;
 if(location.search.includes('pendientes'))document.body.classList.add('rev');
 const AM=JSON.parse(document.getElementById('amen-data').textContent);
@@ -396,7 +419,7 @@ const CHV='<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function step(c,d){const s=c.querySelector('.slides'),k=s.children.length;if(k<2)return;let i=Math.round(s.scrollLeft/s.clientWidth)+d;if(i>=k)i=0;if(i<0)i=k-1;s.scrollTo({left:i*s.clientWidth,behavior:RM?'auto':'smooth'});}
 function arm(c){const k=c.querySelector('.slides').children.length;
- if(!c.querySelector('.nv')){c.insertAdjacentHTML('beforeend','<button class="nv prev" aria-label="Foto anterior">'+CHV+'</button><button class="nv next" aria-label="Foto siguiente">'+CHV+'</button>');
+ if(!c.querySelector('.nv')){c.insertAdjacentHTML('beforeend','<button class="nv prev" aria-label="'+UI.prev+'">'+CHV+'</button><button class="nv next" aria-label="'+UI.next+'">'+CHV+'</button>');
   c.querySelector('.prev').addEventListener('click',ev=>{ev.stopPropagation();ev.preventDefault();c.dataset.t=Date.now();step(c,-1);});
   c.querySelector('.next').addEventListener('click',ev=>{ev.stopPropagation();ev.preventDefault();c.dataset.t=Date.now();step(c,1);});
   c.querySelector('.slides').addEventListener('pointerdown',()=>c.dataset.t=Date.now(),{passive:true});}
@@ -427,12 +450,12 @@ document.addEventListener('click',ev=>{
  if(ev.target.closest('.x')||ev.target.classList.contains('sheet')){ev.preventDefault();location.replace('#'+document.body.dataset.v);}});
 addEventListener('keydown',ev=>{if(ev.key==='Escape'&&openS)location.replace('#'+document.body.dataset.v);});
 document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',async ev=>{ev.stopPropagation();try{await navigator.clipboard.writeText(b.dataset.copy);}catch(e){}
- const t=document.querySelector('.toast');t.textContent='Copiado: '+b.dataset.copy;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1600);}));
+ const t=document.querySelector('.toast');t.textContent=UI.copied+b.dataset.copy;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1600);}));
 if(window.qrcode){if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
  document.querySelectorAll('[data-qr]').forEach(el=>{const q=qrcode(0,'M');q.addData(el.dataset.qr);q.make();el.innerHTML=q.createSvgTag({cellSize:4,margin:0,scalable:true});});}
 function toast(m,ms){const t=document.querySelector('.toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms||1800);}
-if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});
- navigator.serviceWorker.addEventListener('message',e=>{if(e.data==='offline-ok')toast('✓ Guía guardada: ya funciona sin conexión',3500);});}
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register(UI.sw,{scope:UI.scope}).catch(()=>{});
+ navigator.serviceWorker.addEventListener('message',e=>{if(e.data==='offline-ok')toast(UI.saved,3500);});}
 if(location.search.includes('check')){const R={view:document.body.dataset.v,sheet:openS?openS.id:'',over:[],qr:document.querySelectorAll('.qr svg').length,errores:window.__err||[],vh:innerHeight,cta:Math.round(document.querySelector('.abrir').getBoundingClientRect().bottom)};
  const box=(openS?openS.querySelector('.panel'):document.querySelector('.app')).getBoundingClientRect();
  (openS?openS:views.find(x=>!x.hidden)).querySelectorAll('*').forEach(el=>{const r=el.getBoundingClientRect();if(r.width&&(r.right>box.right+1||r.left<box.left-1)&&!el.closest('.slides,.zonas,.filt,.guia')&&getComputedStyle(el).position!=='fixed')R.over.push((el.className||el.tagName)+':'+(el.textContent||'').trim().slice(0,30)+' +'+Math.round(r.right-box.right));});
@@ -445,8 +468,9 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.
  .then(()=>self.clients.claim()).then(()=>self.clients.matchAll()).then(cs=>cs.forEach(c=>c.postMessage('offline-ok'))));});
 const timeout=(p,ms)=>new Promise((ok,ko)=>{const t=setTimeout(()=>ko('lento'),ms);p.then(r=>{clearTimeout(t);ok(r)},ko);});
 self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET')return;const u=new URL(r.url);if(u.origin!==location.origin)return;
- if(r.mode==='navigate'){e.respondWith(timeout(fetch(r),3500).then(res=>{const cp=res.clone();caches.open(V).then(c=>c.put('./',cp));return res;})
-  .catch(()=>caches.match('./',{ignoreSearch:true}).then(m=>m||fetch(r))));return;}
+ if(r.mode==='navigate'){const k=new URL(r.url);k.search='';k.hash='';const key=k.href.replace(/index\.html$/,'');
+  e.respondWith(timeout(fetch(r),3500).then(res=>{if(res.ok){const cp=res.clone();caches.open(V).then(c=>c.put(key,cp));}return res;})
+  .catch(()=>caches.match(key).then(m=>m||caches.match('./')).then(m=>m||fetch(r))));return;}
  e.respondWith(caches.match(r,{ignoreSearch:true}).then(m=>m||fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(V).then(c=>c.put(r,cp));}return res;})));});
 """
 def pwa():
@@ -460,14 +484,14 @@ def pwa():
            "display": "standalone", "background_color": "#FBF8F1", "theme_color": "#141F3A", "lang": "es",
            "icons": [{"src": "../assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "../assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]}
     open(os.path.join(OUT, "vms", "manifest.webmanifest"), "w", encoding="utf-8").write(json.dumps(man, ensure_ascii=False))
-    pre, h, tot = ["./", "manifest.webmanifest"], hashlib.sha1(), 0
+    pre, h, tot = ["./", "en/", "manifest.webmanifest"], hashlib.sha1(), 0
     for root, _d, files in os.walk(OUT):
         if os.sep + "vb" in root: continue
         for f in sorted(files):
             p = os.path.join(root, f); rel = os.path.relpath(p, os.path.join(OUT, "vms")).replace(os.sep, "/")
             if f == "sw.js" or os.path.getsize(p) > 3_000_000 or f.endswith(".pdf") or rel == "../index.html": continue
             h.update(open(p, "rb").read()); tot += os.path.getsize(p)
-            if rel not in ("index.html", "manifest.webmanifest"): pre.append(rel)
+            if rel not in ("index.html", "en/index.html", "manifest.webmanifest"): pre.append(rel)
     sw = SW.replace("__VER__", h.hexdigest()[:10]).replace("__LIST__", json.dumps([urllib.request.quote(x, safe="/.:-_~") for x in pre]))
     open(os.path.join(OUT, "vms", "sw.js"), "w", encoding="utf-8").write(sw)
     print(f"PWA: {len(pre)} archivos para uso sin conexión · aprox. {tot / 1048576:.1f} MB")
@@ -479,6 +503,75 @@ def vendor_qr():
         open(p, "wb").write(urllib.request.urlopen("https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js").read())
     return open(p, encoding="utf-8").read()
 
+UI_JS = {"es": {"lang": "es", "copied": "Copiado: ", "saved": "✓ Guía guardada: ya funciona sin conexión", "prev": "Foto anterior", "next": "Foto siguiente", "sw": "sw.js", "scope": "./"},
+         "en": {"lang": "en", "copied": "Copied: ", "saved": "✓ Guide saved: it now works offline", "prev": "Previous photo", "next": "Next photo", "sw": "../sw.js", "scope": "../"}}
+# Textos fijos de la interfaz (el contenido viene traducido del Excel, columnas *_en)
+UI_EN = {
+ "camas": "beds", "baños": "bathrooms", "huéspedes": "guests", "Cómo llegar": "Directions", "Llamar": "Call", "Abrir guía": "Open guide",
+ "Desliza →": "Swipe →", "Tus anfitriones": "Your hosts", "Leer más": "Read more", "Conéctate": "Get connected", "Red": "Network", "Contraseña": "Password",
+ "A mano": "At hand", "Contacto": "Contact", "Personal de apoyo": "Support staff", "Ubicación": "Location", "Abrir en Google Maps": "Open in Google Maps",
+ "Emergencias": "Emergency", "En caso de emergencia": "In case of emergency", "Teléfono pendiente": "Phone pending", "En caso de": "In case of",
+ "Llamar a emergencias": "Call emergency services", "Servicios": "Services", "En la casa": "In the house", "Ver detalles": "See details",
+ "Inventario completo": "Full inventory", "Toca una zona para ver sus fotos.": "Tap an area to see its photos.", "máximo": "maximum",
+ "Piscina": "Pool", "Mascotas": "Pets", "Experiencias": "Experiences", "Para todos": "For everyone", "Naturaleza": "Nature", "Aventura": "Adventure",
+ "Planes tranquilos": "Relaxed plans", "Ver todo": "See all", "Inicio": "Home", "La casa": "The house", "Reglas": "Rules", "Explora": "Explore",
+ "Acerca de Villa Mi Sueño": "About Villa Mi Sueño", "Comparte tu estancia": "Share your stay",
+ "Llámanos o escríbenos por WhatsApp para lo que necesites durante tu estancia.": "Call us or message us on WhatsApp for anything you need during your stay.",
+ "Ruta a Villa Mi Sueño": "Route to Villa Mi Sueño", "Si no carga el GPS": "If the GPS doesn't load",
+ "No importa: sigue las instrucciones al pie de la letra.": "No problem: just follow these directions carefully.",
+ "Llegada y salida": "Arrival and departure", "Cómo llegar · ruta paso a paso": "Directions · step by step", "Debes saber": "Things to know",
+ "Para una estancia tranquila": "For a smooth stay", "Tenemos para ti": "We have for you", "Todo lo que hay en la villa": "Everything in the villa",
+ "Reglas de la casa": "House rules", "Piscina y jacuzzi": "Pool and jacuzzi", "Somos pet friendly": "We're pet friendly", "Otras zonas": "Other areas",
+ "Qué hacer": "What to do", "Dónde comer y beber": "Where to eat and drink", "Comer y beber": "Food &amp; drink", "Directorio local": "Local directory",
+ "Ver opiniones en TripAdvisor": "See reviews on TripAdvisor", "Ver más opciones": "More options", "Todos": "All", "Rutas en Wikiloc": "Routes on Wikiloc",
+ "Teléfono y mapa pendientes": "Phone and map pending"}
+UI_RX = [(r"^Ver los (\d+)$", r"See all \1"), (r"^(\d+) opciones$", r"\1 options"), (r"^1 opción$", "1 option"), (r"^Escríbenos: (.+)$", r"Email us: \1"),
+         (r"^Aventura · (.+)$", r"Adventure · \1"), (r"^Foto: (.+)$", r"Photo: \1"), (r"^Llamar (\d+)$", r"Call \1")]
+ATTR_EN = {"Llamar": "Call", "Cómo llegar": "Directions", "Rutas en Wikiloc": "Routes on Wikiloc", "Cerrar": "Close", "Secciones": "Sections", "Código QR de la red": "QR code for network"}
+def tr_ui(page):
+    parts = re.split(r"(<script\b.*?</script>|<style\b.*?</style>)", page, flags=re.S)
+    def node(m):
+        raw = m.group(1); s = raw.strip()
+        if not s: return m.group(0)
+        out = UI_EN.get(s)
+        if out is None:
+            for rx, rep in UI_RX:
+                if re.match(rx, s): out = re.sub(rx, rep, s); break
+        return ">" + raw.replace(s, out) + "<" if out is not None else m.group(0)
+    def attr(m):
+        val = m.group(2)
+        for es_, en_ in ATTR_EN.items():
+            if val == es_ or val.startswith(es_ + " "): val = en_ + val[len(es_):]; break
+        return f'{m.group(1)}="{val}"'
+    for i in range(0, len(parts), 2):
+        parts[i] = re.sub(r'(aria-label|title)="([^"]*)"', attr, re.sub(r">([^<>]+)<", node, parts[i]))
+    return "".join(parts)
+
+def render(lang, fontcss, copy_svg):
+    apply(lang)
+    body = s_portada() + s_inicio() + s_casa() + s_reglas() + s_explora()
+    sh = sheets()
+    nav = "".join(f'<a href="#{v}" data-v="{v}"><span>{ic(i)}</span>{e(tx)}</a>' for v, tx, i in NAV)
+    amen_json = json.dumps(AMEN, ensure_ascii=False).replace("</", "<\\/")
+    alt = '<link rel="alternate" hreflang="es" href="' + ("./" if lang == "es" else "../") + '"><link rel="alternate" hreflang="en" href="' + ("en/" if lang == "es" else "./") + '">'
+    page = (f'<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+            f'<meta name="theme-color" content="#141F3A"><meta name="robots" content="noindex"><title>{e(G.get("nombre", ""))} · Welcome book</title><link rel="icon" href="../assets/vms_mark.svg">'
+            f'{alt}<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="../assets/pwa/apple-touch-icon.png">'
+            '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Villa Mi Sueño">'
+            f'<style>{fontcss}:root{{--copy:{copy_svg}}}{v3.CSS}{CSS4}</style></head><body><div class="app">{body}'
+            f'<nav class="nav" aria-label="Secciones">{nav}</nav>{sh}<a class="revbtn" href="#" data-sheet="pendientes">{ic("info")}Pendientes ({len(set(PEND))})</a>'
+            f'<div class="toast" role="status"></div></div><script type="application/json" id="amen-data">{amen_json}</script>'
+            f'<script>window.__err=[];addEventListener("error",ev=>window.__err.push(ev.message));window.UI={json.dumps(UI_JS[lang], ensure_ascii=False)};</script>'
+            f'<script>{vendor_qr()}</script><script>{JS4}</script></body></html>')
+    if lang == "es":
+        path = os.path.join(OUT, "vms", "index.html")
+    else:
+        page = tr_ui(page)
+        page = page.replace('"../assets/', '"../../assets/').replace("(../assets/", "(../../assets/").replace("'../assets/", "'../../assets/").replace('href="manifest.webmanifest"', 'href="../manifest.webmanifest"')
+        os.makedirs(os.path.join(OUT, "vms", lang), exist_ok=True); path = os.path.join(OUT, "vms", lang, "index.html")
+    open(path, "w", encoding="utf-8").write(page)
+    return len(set(PEND))
+
 def build():
     load()
     shutil.rmtree(OUT, ignore_errors=True)
@@ -488,27 +581,13 @@ def build():
     fontcss = open(os.path.join(v3.FONTS, "fonts.css")).read()
     logo = open(os.path.join(R, "00_BRAND", "LOGOS_SVG", "vms_logo.svg"), encoding="utf-8").read()
     open(os.path.join(OUT, "assets", "vms_mark.svg"), "w", encoding="utf-8").write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="254 346 87 118">' + "".join(re.findall(r'<path fill-rule="nonzero"[^>]*/>', logo)) + "</svg>")
-    pdf = os.path.join(W, "_fuente", "VMS WELCOME PACK-2026_red.pdf")
     copy_svg = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><rect x='8' y='8' width='12' height='12' rx='2'/><path d='M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3'/></svg>\")"
-    body = s_portada() + s_inicio() + s_casa() + s_reglas() + s_explora()
-    sh = sheets()
-    nav = "".join(f'<a href="#{v}" data-v="{v}"><span>{ic(i)}</span>{e(tx)}</a>' for v, tx, i in NAV)
-    amen_json = json.dumps(AMEN, ensure_ascii=False).replace("</", "<\\/")
-    page = ('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
-            f'<meta name="theme-color" content="#141F3A"><meta name="robots" content="noindex"><title>{e(G.get("nombre", ""))} · Welcome book</title><link rel="icon" href="../assets/vms_mark.svg">'
-            '<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="../assets/pwa/apple-touch-icon.png">'
-            '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Villa Mi Sueño">'
-            f'<style>{fontcss}:root{{--copy:{copy_svg}}}{v3.CSS}{CSS4}</style></head><body><div class="app">{body}'
-            f'<nav class="nav" aria-label="Secciones">{nav}</nav>{sh}<a class="revbtn" href="#" data-sheet="pendientes">{ic("info")}Pendientes ({len(set(PEND))})</a>'
-            f'<div class="toast" role="status"></div></div><script type="application/json" id="amen-data">{amen_json}</script>'
-            f'<script>window.__err=[];addEventListener("error",ev=>window.__err.push(ev.message));</script>'
-            f'<script>{vendor_qr()}</script><script>{JS4}</script></body></html>')
-    open(os.path.join(OUT, "vms", "index.html"), "w", encoding="utf-8").write(page)
+    npend = {lang: render(lang, fontcss, copy_svg) for lang in LANGS}
     pwa()
     open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write('<!doctype html><meta http-equiv="refresh" content="0;url=vms/">')
     vb = os.path.join(W, "sitio", "vb", "index.html")
     if os.path.exists(vb): shutil.copy(vb, os.path.join(OUT, "vb", "index.html"))
-    print(f"ok -> {os.path.join(OUT, 'vms', 'index.html')}  |  contenido: {XLSX}  |  lugares: {len(D['Lugares'])}  |  pendientes: {len(set(PEND))}")
+    print(f"ok -> {os.path.join(OUT, 'vms')}  (es + en)  |  contenido: {XLSX}  |  lugares: {len(D['Lugares'])}  |  pendientes: {npend['es']}")
 
 if __name__ == "__main__":
     build()
